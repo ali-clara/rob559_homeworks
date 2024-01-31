@@ -9,6 +9,7 @@ import rospy
 import sys
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
+from rob599_hw1.srv import SetDistance, SetDistanceResponse
 
 # import the other stuff
 import numpy as np
@@ -20,9 +21,14 @@ class DriveForward():
         
         # Set up the publisher and subscriber. 
         # The Fetch will listen for Twist messages on the cmd_vel topic.
-        rospy.loginfo("Initializing drive-to-wall publisher and subscriber")
         self.publisher = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.subscriber = rospy.Subscriber('base_scan', LaserScan, self.laser_callback)
+        rospy.loginfo("Started drive-to-wall publisher and subscriber")
+
+        self.distance_service = rospy.Service('stopping_distance', SetDistance, self.dist_service_callback)
+        rospy.loginfo("Started wall distance service")
+
+        self.stopping_distance = None
 
         self.laser_ranges = None
         self.laser_angles = None
@@ -37,6 +43,13 @@ class DriveForward():
         self.laser_angles = np.arange(msg.angle_min, msg.angle_max, msg.angle_increment)
         self.laser_ranges = np.array(msg.ranges)
         # rospy.loginfo(f"Laser scan: min distance {min(msg.ranges)}")
+
+    def dist_service_callback(self, request):
+        """Callback function for the stopping distance service. Sets the class variable
+            based on the input given (request.SetDistance). Returns True if successfully set."""
+        rospy.loginfo(f"Stopping distance service got {request.SetDistance}")
+        self.stopping_distance = request.SetDistance
+        return SetDistanceResponse(True)
 
     def find_goal(self):
         """Finds the x distance and angle goal in the Fetch's coordinate frame"""
