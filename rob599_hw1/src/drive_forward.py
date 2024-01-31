@@ -24,49 +24,52 @@ class DriveForward():
         self.publisher = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.subscriber = rospy.Subscriber('base_scan', LaserScan, self.laser_callback)
         rospy.loginfo("Started drive-to-wall publisher and subscriber")
-
+        
+        # Set up the service. This allows us to set the distance in front of an obstacle
+            # the Fetch will stop at
         self.distance_service = rospy.Service('stopping_distance', SetDistance, self.dist_service_callback)
         rospy.loginfo("Started wall distance service")
 
-        self.stopping_distance = None
+        # Initialize class variables
+        self.stopping_distance = 1.0
 
         self.laser_ranges = None
         self.laser_angles = None
-
         self.range_goal = None
         self.angle_goal = None
 
     def laser_callback(self, msg):
         """Callback function for the laser subscriber. Called every time a new
-            message (type LaserScan) is recieved.
+            message (type LaserScan) is recieved to 'base_scan'.
             Saves the angle range and the laser range to class variables as np arrays"""
         self.laser_angles = np.arange(msg.angle_min, msg.angle_max, msg.angle_increment)
         self.laser_ranges = np.array(msg.ranges)
-        # rospy.loginfo(f"Laser scan: min distance {min(msg.ranges)}")
 
     def dist_service_callback(self, request):
         """Callback function for the stopping distance service. Sets the class variable
             based on the input given (request.SetDistance). Returns True if successfully set."""
-        rospy.loginfo(f"Stopping distance service got {request.SetDistance}")
-        self.stopping_distance = request.SetDistance
+        rospy.loginfo(f"Stopping distance service got {request.distance}")
+        self.stopping_distance = request.distance
         return SetDistanceResponse(True)
 
     def find_goal(self):
         """Finds the x distance and angle goal in the Fetch's coordinate frame"""
         min_laser_index = np.argmin(self.laser_ranges)
         self.angle_goal = self.laser_angles[min_laser_index]
-        # rospy.loginfo(f"Minimum distance found {self.angle_goal}")
         self.range_goal = self.laser_ranges[min_laser_index]
         rospy.loginfo(f"Closest laser scan: {np.round(self.range_goal,3)}m at {np.round(np.rad2deg(self.angle_goal),3)}deg")
     
     def calculate_velocity(self): 
         """Maps the x distance (range) goal and the angle goal to velocities"""
-        x_distance_between = [1, 5]   # as the distance ranges between 1-5m,
-        x_velocity_between = [0, 1]   # linearly vary the velocity between 0-1m/s
+        # set up an interpolation to evaluate the x velocity at each distance value 
+            # and cap at 1m/s. Equivalent to y = 0.25*(x-1) between 0<x<5
+        x_distance_between = [0, 5]
+        x_velocity_between = [-0.25, 1]
         x_velocity = np.interp(self.range_goal, x_distance_between, x_velocity_between)
 
-        z_angle_between = [-1.92, 1.92] # as the angle ranges from -1.92-1.92 rad,
-        z_velocity_bewteen = [-0.15*(2*np.pi), 0.15*(2*np.pi)] # linearly vary the velocity between -0.5-0.5rev/s
+        # set up an interpolation to evaluate the z velocity, caps at 0.15rev/s
+        z_angle_between = [-1.92, 1.92]
+        z_velocity_bewteen = [-0.15*(2*np.pi), 0.15*(2*np.pi)]
         z_velocity = np.interp(self.angle_goal, z_angle_between, z_velocity_bewteen)
 
         return x_velocity, z_velocity
@@ -90,7 +93,7 @@ class DriveForward():
         return cmd
     
     def run(self):
-        """Runs the node"""
+        """Run the node"""
         rate = rospy.Rate(10)
         # hang out until we've recieved a message
         rospy.wait_for_message('base_scan', LaserScan, timeout=10)
