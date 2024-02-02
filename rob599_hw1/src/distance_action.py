@@ -5,7 +5,7 @@
 import rospy
 import actionlib
 import sys
-from rob599_hw1.msg import SetDistanceAction, SetDistanceActionGoal
+from rob599_hw1.msg import SetDistanceAction, SetDistanceGoal, SetDistanceResult
 
 class ActionCall():
     def __init__(self) -> None:
@@ -42,8 +42,8 @@ class ActionCall():
             dist = 1.0
 
         rospy.loginfo(f"Setting goal to {dist}m")
-        goal_dist = SetDistanceActionGoal(goal=dist)
-        self.client.send_goal(goal_dist, done_cb=self.done_callback, active_cb=self.active_callback, feedback_cb=self.feedback_callback)
+        goal = SetDistanceGoal(stopping_distance=dist)
+        self.client.send_goal(goal, done_cb=self.done_callback, active_cb=self.active_callback, feedback_cb=self.feedback_callback)
         self.client.wait_for_result()
 
 if __name__ == "__main__":

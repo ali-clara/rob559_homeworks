@@ -10,8 +10,9 @@ import sys
 import actionlib
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
+from visualization_msgs.msg import Marker
 from rob599_hw1.srv import SetDistance, SetDistanceResponse
-from rob599_hw1.msg import SetDistanceAction, SetDistanceActionFeedback, SetDistanceActionResult
+from rob599_hw1.msg import SetDistanceAction, SetDistanceFeedback, SetDistanceResult
 
 # import the other stuff
 import numpy as np
@@ -20,11 +21,14 @@ class DriveForward():
     def __init__(self) -> None:
         # Initialize the node
         rospy.init_node('drive_forward', argv=sys.argv)
-        
-        # Set up the publisher and subscriber. 
+        self.rate = rospy.Rate(10)
+
+        # Set up the publishers and subscriber. 
         # The Fetch will listen for Twist messages on the cmd_vel topic.
-        self.publisher = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-        self.subscriber = rospy.Subscriber('trimmed_scan', LaserScan, self.laser_callback)
+        # Markers are published on the visualization_marker topic
+        self.marker_publisher = rospy.Publisher('visualization_marker', Marker, queue_size=10)
+        self.velocity_publisher = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+        self.laser_subscriber = rospy.Subscriber('trimmed_scan', LaserScan, self.laser_callback)
         rospy.loginfo("Started drive-to-wall publisher and subscriber")
         
         # Set up the service. This allows us to set the distance in front of an obstacle
@@ -63,33 +67,29 @@ class DriveForward():
         """Callback function for the action distance service"""
 
         # set the distance to go based on the action
-        self.stopping_distance = goal
+        self.stopping_distance = goal.stopping_distance
+        rospy.loginfo(f"Setting stopping distance to {goal.stopping_distance}")
 
         # find how much further we have to travel and publish it as feedback
-        dist_to_go = self.range_min - self.stopping_distance
-        self.drive_action.publish_feedback(SetDistanceActionFeedback(distance_to_go=dist_to_go))
+        while not self.found_goal():
+            dist_to_go = self.range_min - self.stopping_distance
+            self.drive_action.publish_feedback(SetDistanceFeedback(distance_to_go=dist_to_go))
 
-        # if we recieved a new goal, preempt the old goal
-        if self.drive_action.is_new_goal_available():
-            self.drive_action.set_preempted(SetDistanceActionResult(distance_to_wall=self.range_min))
-            return
+            # if we recieved a new goal, preempt the old goal
+            if self.drive_action.is_new_goal_available():
+                self.drive_action.set_preempted(SetDistanceResult(distance_from_wall=self.range_min))
+                return
+            
+            self.rate.sleep()
         
-        # if we've reached the wall (or are close enough), return succeeded
-        if self.found_goal():
-            self.drive_action.set_succeeded(SetDistanceActionResult(distance_to_wall=self.range_min))
+        # once we've reached the wall (or are close enough), return succeeded
+        self.drive_action.set_succeeded(SetDistanceResult(distance_from_wall=self.range_min))
 
-    # def find_goal(self):
-    #     """Finds the x distance and angle goal in the Fetch's coordinate frame"""
-    #     min_laser_index = np.argmin(self.laser_ranges)
-    #     self.angle_goal = self.laser_angles[min_laser_index]
-    #     self.range_min = self.laser_ranges[min_laser_index]
-    #     rospy.loginfo(f"Closest laser scan: {np.round(self.range_min,3)}m at {np.round(np.rad2deg(self.angle_goal),3)}deg")
-    
     def found_goal(self):
         """Returns True if the minimum range measurement is within an 
             accpetable threshold of the set stopping distance"""
         # are we within an acceptable threshold of the goal?
-        if abs(self.range_min - self.stopping_distance) < 0.1:
+        if abs(self.range_min - self.stopping_distance) < 0.15:
             return True
         else:
             return False
@@ -114,27 +114,23 @@ class DriveForward():
         cmd.linear.z = 0.0
 
         # Rotational velocities: rad/sec 
-        # The Fetch will only respond to rotations around the z (vertical) axis
         cmd.angular.x = 0.0
         cmd.angular.y = 0.0
         cmd.angular.z = 0.0
-        # cmd.angular.z = min(angular_z, 0.25*(2*np.pi))   # make sure we cap at 0.25 rev/s
 
         return cmd
     
     def run(self):
         """Run the node"""
-        rate = rospy.Rate(10)
         # hang out until we've recieved a message
         rospy.wait_for_message('trimmed_scan', LaserScan, timeout=10)
         while not rospy.is_shutdown():
-            # self.find_goal()
             x_velocity = self.calculate_velocity()
             cmd = self.create_fetch_twist(x_velocity)
             rospy.loginfo(f"Publishing {np.round(cmd.linear.x,3)}m/s")
-            self.publisher.publish(cmd)
+            self.velocity_publisher.publish(cmd)
 
-            rate.sleep()
+            self.rate.sleep()
 
 if __name__ == "__main__":
     my_drive = DriveForward()

@@ -8,10 +8,11 @@ project(rob599_hw1)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   rospy
+  roscpp
   std_msgs
   message_generation
+  actionlib
   actionlib_msgs
 )
 
@@ -49,18 +50,21 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
+ add_message_files(
+    DIRECTORY msg
 #   FILES
-# )
+ )
 
 ## Generate services in the 'srv' folder
  add_service_files(
+   DIRECTORY srv
    FILES
    SetDistance.srv
  )
 
 ## Generate actions in the 'action' folder
  add_action_files(
+   DIRECTORY action
    FILES
    SetDistance.action
  )
@@ -71,6 +75,11 @@ find_package(catkin REQUIRED COMPONENTS
    std_msgs
    actionlib_msgs
  )
+ 
+## Catkin packages
+catkin_package(
+  CATKIN_DEPENDS actionlib_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -104,7 +113,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rob599_hw1
-  CATKIN_DEPENDS actionlib_msgs
+  DEPENDS actionlib_msgs
 #  DEPENDS system_lib
 )
 

@@ -1,8 +1,8 @@
-#goal definition
+# goal definition
 float64 stopping_distance
 ---
-#result definition
+# result definition
 float64 distance_from_wall
 ---
-#feedback
+# feedback
 float64 distance_to_go
