@@ -27,6 +27,7 @@ class DriveForward():
         # The Fetch will listen for Twist messages on the cmd_vel topic.
         # Markers are published on the visualization_marker topic
         self.marker_publisher = rospy.Publisher('visualization_marker', Marker, queue_size=10)
+        rospy.loginfo("Started marker visualization publisher")
         self.velocity_publisher = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.laser_subscriber = rospy.Subscriber('trimmed_scan', LaserScan, self.laser_callback)
         rospy.loginfo("Started drive-to-wall publisher and subscriber")
@@ -59,19 +60,22 @@ class DriveForward():
     def dist_service_callback(self, request):
         """Callback function for the stopping distance service. Sets the class variable
             based on the input given (request.SetDistance). Returns True if successfully set."""
-        rospy.loginfo(f"Stopping distance service got {request.distance}")
         self.stopping_distance = request.distance
+        rospy.loginfo(f"Set stopping distance to {request.distance}m")
         return SetDistanceResponse(True)
     
     def dist_action_callback(self, goal):
-        """Callback function for the action distance service"""
+        """Callback function for the action distance service. Returns Succeeded once
+            we're the set distance (self.stopping distance) in front of the nearest obstacle,
+            provides the remaining distance to travel as feedback."""
 
-        # set the distance to go based on the action
+        # set the distance to go based on the action client
         self.stopping_distance = goal.stopping_distance
-        rospy.loginfo(f"Setting stopping distance to {goal.stopping_distance}")
+        rospy.loginfo(f"Set stopping distance to {goal.stopping_distance}m")
 
-        # find how much further we have to travel and publish it as feedback
+        # loop until we're the set distance in front of the wall
         while not self.found_goal():
+            # find how much further we have to travel and publish it as feedback
             dist_to_go = self.range_min - self.stopping_distance
             self.drive_action.publish_feedback(SetDistanceFeedback(distance_to_go=dist_to_go))
 
@@ -80,9 +84,10 @@ class DriveForward():
                 self.drive_action.set_preempted(SetDistanceResult(distance_from_wall=self.range_min))
                 return
             
+            # chill
             self.rate.sleep()
         
-        # once we've reached the wall (or are close enough), return succeeded
+        # once we've reached the goal (or are close enough), return succeeded
         self.drive_action.set_succeeded(SetDistanceResult(distance_from_wall=self.range_min))
 
     def found_goal(self):
@@ -95,7 +100,7 @@ class DriveForward():
             return False
     
     def calculate_velocity(self): 
-        """Maps the x distance (range) goal and the angle goal to velocities"""
+        """Maps the x distance (range) to an appropriate x velocity"""
         # set up an linear relationship to evaluate the x velocity at each distance value 
             # and cap at 1m/s
         x_velocity = 0.25*(self.range_min - self.stopping_distance)
@@ -120,16 +125,43 @@ class DriveForward():
 
         return cmd
     
+    def create_marker(self):
+        """Creates a marker at the closest laser scan point"""
+        marker = Marker()
+        marker.header.frame_id = 'laser_link'
+        marker.header.stamp = rospy.Time()
+
+        marker.type = 0 # arrow
+        marker.action = 0   # add marker
+        
+        marker.pose.position.x = 0
+        marker.pose.position.y = 0
+        marker.pose.position.z = 0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.x = self.range_min
+        marker.scale.y = 0.1
+        marker.scale.z = 0.1
+        
+        marker.color.a = 1.0    # making it visible!
+        marker.color.g = 1.0
+
+        return marker
+    
     def run(self):
         """Run the node"""
         # hang out until we've recieved a message
         rospy.wait_for_message('trimmed_scan', LaserScan, timeout=10)
         while not rospy.is_shutdown():
+            # calculate and publish Fetch velocity
             x_velocity = self.calculate_velocity()
             cmd = self.create_fetch_twist(x_velocity)
             rospy.loginfo(f"Publishing {np.round(cmd.linear.x,3)}m/s")
             self.velocity_publisher.publish(cmd)
-
+            # create and publish marker at detected point
+            marker = self.create_marker()
+            self.marker_publisher.publish(marker)
+            # chill
             self.rate.sleep()
 
 if __name__ == "__main__":
