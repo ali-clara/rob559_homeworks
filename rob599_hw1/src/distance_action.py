@@ -40,7 +40,7 @@ class ActionCall():
             print(dist)
         except:
             dist = 1.0
-
+        # send the goal and wait for the result
         rospy.loginfo(f"Setting goal to {dist}m")
         goal = SetDistanceGoal(stopping_distance=dist)
         self.client.send_goal(goal, done_cb=self.done_callback, active_cb=self.active_callback, feedback_cb=self.feedback_callback)

@@ -14,4 +14,7 @@
 	<!-- Start node to trim the laser scan to only in front of the Fetch-->
 	<node name="trim_msg" pkg="rob599_hw1" type="trim_laser_scan.py"/>
 
+	<!-- Start node to fit a line to the wall using a marker -->
+	<node name="wall_fit" pkg="rob599_hw1" type="wall_fit.py"/>
+
 </launch>

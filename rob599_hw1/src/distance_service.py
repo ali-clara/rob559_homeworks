@@ -53,6 +53,7 @@ class ServiceCall():
                 print("Please enter a real number.")
                 real_number = False
             
+            # if it was a valid input, sent it to the service
             if real_number and positive:
                 try:
                     answer = self.stopping_service(dist_to_wall)

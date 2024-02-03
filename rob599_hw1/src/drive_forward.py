@@ -65,9 +65,9 @@ class DriveForward():
         return SetDistanceResponse(True)
     
     def dist_action_callback(self, goal):
-        """Callback function for the action distance service. Returns Succeeded once
-            we're the set distance (self.stopping distance) in front of the nearest obstacle,
-            provides the remaining distance to travel as feedback."""
+        """Callback function for the action distance service. Provides the 
+            remaining distance to travel as feedback, returns Succeeded once
+            we are the goal distance (self.stopping distance) in front of the nearest obstacle."""
 
         # set the distance to go based on the action client
         self.stopping_distance = goal.stopping_distance
@@ -105,7 +105,6 @@ class DriveForward():
             # and cap at 1m/s
         x_velocity = 0.25*(self.range_min - self.stopping_distance)
         x_velocity = min(x_velocity, 1)
-
         return x_velocity
         
     def create_fetch_twist(self, linear_x):
@@ -114,7 +113,7 @@ class DriveForward():
         cmd = Twist()
 
         # Linear velocities: m/s
-        cmd.linear.x = min(linear_x, 1) # make sure we cap at 1m/s
+        cmd.linear.x = min(linear_x, 1) # really make sure we cap at 1m/s
         cmd.linear.y = 0.0
         cmd.linear.z = 0.0
 
@@ -126,7 +125,7 @@ class DriveForward():
         return cmd
     
     def create_marker(self):
-        """Creates a marker at the closest laser scan point"""
+        """Creates an arrow pointing from the Fetch to the closest laser scan point"""
         marker = Marker()
         marker.header.frame_id = 'laser_link'
         marker.header.stamp = rospy.Time()

@@ -24,23 +24,22 @@ class TrimLaser():
 
         self.laser_angles = None
         self.laser_ranges = None
-
         self.my_laser_msg = None
         
     def laser_callback(self, msg):
         """Callback function for the laser subscriber. Called every time a new
             message (type LaserScan) is recieved. \\
             Saves the laser scan angles and ranges to class variables as np arrays"""
+        # create np arrays out of the angle and range readings
         self.laser_angles = np.arange(msg.angle_min, msg.angle_max, msg.angle_increment)
         self.laser_ranges = np.array(msg.ranges)
-
+        # grab the entire message to modify and republish later
         self.my_laser_msg = msg
 
     def trim_message(self):
         """Clips the laser scan messages to only be in front of the Fetch,
             assuming that the Fetch is 1m wide"""
-        
-        # finds the x coordinate corresponding to each range
+        # finds the x coordinate corresponding to each range reading
         hz_distance = self.laser_ranges*np.sin(self.laser_angles)
         # if the x coordinate is further than 0.5 (half the width of the Fetch)
             # from the origin (center of the Fetch), set it to infinity

@@ -28,7 +28,7 @@ class LineFit():
     def laser_callback(self, msg):
         """Callback function for the laser subscriber. Called every time a new
             message (type LaserScan) is recieved to 'base_scan'.
-            Saves the angle range and the laser range to class variables as np arrays"""
+            Grabs the polar coords of the minimum and maximum points"""
         laser_angles = np.arange(msg.angle_min, msg.angle_max, msg.angle_increment)
         laser_ranges = np.array(msg.ranges)
 
@@ -36,16 +36,16 @@ class LineFit():
         laser_angles = laser_angles[mask]
         laser_ranges = laser_ranges[mask]
 
-        min_index = np.argmin(laser_ranges)
+        min_index = np.argmin(laser_angles)
         self.range_min = laser_ranges[min_index]
         self.angle_min = laser_angles[min_index]
 
-        max_index = np.argmax(laser_ranges)
+        max_index = np.argmax(laser_angles)
         self.range_max = laser_ranges[max_index]
         self.angle_max = laser_angles[max_index]
 
     def polar_to_cartesian(self, r, angle):
-
+        """Converts from r and angle to x and y"""
         rospy.loginfo(f"point at {r}m, {angle}rad")
         x = r*np.cos(angle)
         y = r*np.sin(angle)
@@ -53,6 +53,7 @@ class LineFit():
         return x,y
     
     def create_point(self, x, y):
+        """Takes a given x and y input and creates a Point geometry message"""
         point = Point()
         
         point.x = x
@@ -74,16 +75,9 @@ class LineFit():
         marker.action = 0   # add marker
 
         marker.points = points
-        
-        # marker.pose.position.x = 0
-        # marker.pose.position.y = 0
-        # marker.pose.position.z = 0
-        marker.pose.orientation.w = 1.0
 
-        marker.scale.x = 0.2
-        # marker.scale.y = 1.0
-        # marker.scale.z = 1.0
-        
+        marker.pose.orientation.w = 1.0
+        marker.scale.x = 0.1
         marker.color.a = 1.0    # making it visible!
         marker.color.g = 1.0
 
