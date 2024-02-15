@@ -1,5 +1,0 @@
-# inputs
-float64 distance
----
-# outputs
-bool confirmation
