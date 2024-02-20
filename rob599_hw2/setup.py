@@ -26,7 +26,8 @@ setup(
         'console_scripts': [
             'twist_publisher = rob599_hw2.twist_publisher:main',
             'speed_limiter = rob599_hw2.speed_limiter:main',
-            'speed_checker = rob599_hw2.speed_checker:main'
+            'speed_checker = rob599_hw2.speed_checker:main',
+            'braking_service_client = rob599_hw2.braking_service_client:main',
         ],
     },
 )

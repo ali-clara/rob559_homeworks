@@ -1,0 +1,5 @@
+# inputs
+bool status
+---
+# outputs
+bool result
