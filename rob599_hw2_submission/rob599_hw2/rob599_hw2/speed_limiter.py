@@ -7,7 +7,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from rob599_hw2_msgs.srv import ApplyBreaks
+from rob599_hw2_msgs.srv import ApplyBrakes
 
 import numpy as np
 
@@ -33,7 +33,7 @@ class SpeedLimiter(Node):
         self.watchdog_counter = 0
 
         # create a braking service
-        self.create_service(ApplyBreaks, 'apply_breaks', self.service_callback)
+        self.create_service(ApplyBrakes, 'apply_brakes', self.service_callback)
         self.braking_timer = self.create_timer(0.1, self.braking_callback)
         self.brakes = False
         
@@ -117,14 +117,14 @@ class SpeedLimiter(Node):
         
         # record that we've recieved a message
         self.watchdog_counter += 1
-        self.get_logger().info(f"Speed_in got {msg}")
+        self.get_logger().info(f"\speed_in: recieved Twist")
 
         # if the braking flag is set to false, trim the message according to the limit params
         if not self.brakes:
             msg = self.limit_twist(msg)
             # publish the message
             self.speed_pub.publish(msg)
-            self.get_logger().info(f"Speed_out sent {msg}")
+            self.get_logger().info(f"\speed_out: publishing capped Twist")
         
 
 def main(args=None):

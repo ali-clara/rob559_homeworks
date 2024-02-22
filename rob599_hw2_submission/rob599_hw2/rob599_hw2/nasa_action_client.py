@@ -91,7 +91,8 @@ def main(args=None):
         launch_abort = None
     action_client = NasaClient(launch_abort)
     # send goal
-    action_client.send_goal(10)
+    goal = 10
+    action_client.send_goal(goal)
     # hand control over to ros
     rclpy.spin(action_client)
     # shutdown cleanly, in case we didn't do that after recieving the result

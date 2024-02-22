@@ -13,7 +13,7 @@ find_package(rclcpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "srv/ApplyBreaks.srv"
+  "srv/ApplyBrakes.srv"
   "action/Nasa.action"
   )
 

@@ -4,21 +4,21 @@
 
 import rclpy
 from rclpy.node import Node
-from rob599_hw2_msgs.srv import ApplyBreaks
+from rob599_hw2_msgs.srv import ApplyBrakes
 
 class BrakingServiceClient(Node):
     def __init__(self):
         # initialize the node
         super().__init__('braking_client')
         # initialize the service client
-        self.client = self.create_client(ApplyBreaks, "apply_breaks")
+        self.client = self.create_client(ApplyBrakes, "apply_brakes")
         # wait until we have a connection to the server.
         while not self.client.wait_for_service(timeout_sec=1):
             self.get_logger().info('waiting for service to start')
 
     def send_request(self, braking_status):
         # build the request
-        request = ApplyBreaks.Request()
+        request = ApplyBrakes.Request()
         request.status = braking_status
         # make the service call (asynchronous)
         self.response = self.client.call_async(request)

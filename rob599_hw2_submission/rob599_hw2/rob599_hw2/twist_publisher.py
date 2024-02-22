@@ -26,8 +26,8 @@ class TwistPublisher(Node):
         twist_keys = ["x", "y", "z"]
 
         for key in twist_keys:
-            linear_val = np.random.randint(low=0, high=20)*np.random.rand()
-            angular_val = np.random.randint(low=0, high=6)*np.random.rand()
+            linear_val = np.random.randint(low=-20, high=20)*np.random.rand()
+            angular_val = np.random.randint(low=-6, high=6)*np.random.rand()
 
             setattr(msg.linear, key, linear_val)
             setattr(msg.angular, key, angular_val)
@@ -38,8 +38,7 @@ class TwistPublisher(Node):
         """Callback function for the timer, generates and publishes random twist messages"""
         msg = self.generate_twist()
         self.twist_pub.publish(msg)
-        self.get_logger().info(f"Publishing random Twist {msg}")
-        # self.get_logger().info("---------------")
+        self.get_logger().info(f"\speed_in: publishing random Twist")
 
 
 def main(args=None):
