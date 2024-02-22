@@ -3,18 +3,18 @@
 <package format="3">
   <name>rob599_hw2_msgs</name>
   <version>0.0.0</version>
-  <description>Message/service/action package for ROB599 hw2</description>
+  <description>TODO: Package description</description>
   <maintainer email="jonesal9@oregonstate.edu">aliclara</maintainer>
   <license>GPL-3.0-only</license>
   
   <member_of_group>rosidl_interface_packages</member_of_group>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  
-  <depend>rclpy</depend>
+
   <depend>std_msgs</depend>
+  <depend>rclpy</depend>
   <depend>rclcpp</depend>
-    
+
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

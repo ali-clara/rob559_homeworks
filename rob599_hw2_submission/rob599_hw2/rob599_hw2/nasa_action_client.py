@@ -2,6 +2,7 @@
 
 # Action client that demonstrates the behavior of the Nasa action server
 
+import sys
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
@@ -9,11 +10,12 @@ from rclpy.action import ActionClient
 from rob599_hw2_msgs.action import Nasa
 
 class NasaClient(Node):
-    def __init__(self):
+    def __init__(self, launch_abort=None):
         # initialize the node
         super().__init__('nasa_client')
         # initialize the action client (same name and type as the server)
         self.action_client = ActionClient(self, Nasa, 'launch_rocket')
+        self.launch_abort = launch_abort
 
     def send_goal(self, set_goal):
         # wait for the action server
@@ -48,21 +50,22 @@ class NasaClient(Node):
         self.result_handle = request_handle.get_result_async()
         self.result_handle.add_done_callback(self.process_result_callback)
 
-        # create a 2 second timer to cancel the goal
-        self._cancel_timer = self.create_timer(2.0, self.cancel_timer_callback)
+        # create a timer to cancel the goal after a given number of seconds
+        if self.launch_abort is not None:
+            self._cancel_timer = self.create_timer(self.launch_abort, self.cancel_timer_callback)
 
     def process_result_callback(self, future):
         """Callback that fires when we get a result"""
-
-        # has a type that corresponds to the result field of the action definiton
+        # Grab the result and log it
+            # (has a type that corresponds to the result field of the action definiton)
         result = future.result().result
-
-        # log the result
         self.get_logger().info(f"Launch outcome: {result.outcome}")
+        # shutdown after recieving the result
+        rclpy.shutdown()
 
     def cancel_timer_callback(self):
         """A quick timer that fires once after the goal is accepted. Triggers
-            a callback that cancels the goal after X seconds"""
+            a callback that cancels the goal after self.launch_abort seconds"""
         future = self._request_handle.cancel_goal_async()
         future.add_done_callback(self.cancel_done)
 
@@ -82,12 +85,16 @@ def main(args=None):
     # initialize
     rclpy.init(args=args)
     # instantiate
-    action_client = NasaClient()
+    try:
+        launch_abort = int(sys.argv[1])
+    except:
+        launch_abort = None
+    action_client = NasaClient(launch_abort)
     # send goal
     action_client.send_goal(10)
     # hand control over to ros
     rclpy.spin(action_client)
-    # shutdown cleanly
+    # shutdown cleanly, in case we didn't do that after recieving the result
     if rclpy.ok():
         rclpy.shutdown()
 

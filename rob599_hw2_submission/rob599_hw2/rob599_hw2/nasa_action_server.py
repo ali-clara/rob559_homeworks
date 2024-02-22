@@ -41,7 +41,7 @@ class NasaActionServer(Node):
                 self.get_logger().info("Goal Canceled")
                 return Nasa.Result()
             
-            # each iteration, increase the countdown and publish the feedback
+            # each iteration, decrease the countdown and publish the feedback
             feedback_msg.countdown = goal_handle.request.sec_to_launch - i
             self.get_logger().info(f"Publishing feedback: {feedback_msg.countdown}")
             goal_handle.publish_feedback(feedback_msg)

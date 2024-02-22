@@ -4,12 +4,12 @@
   <name>rob599_hw2</name>
   <version>0.0.0</version>
   <description>Package for ROB599 homework2</description>
-  <maintainer email="jonesal9@oregonsate.edu">Ali Jones</maintainer>
+  <maintainer email="jonesal9@oregonstate.edu">Ali Jones</maintainer>
   <license>GPL-3.0-only</license>
-  
+
+  <depend>std_msgs</depend>
   <depend>rclpy</depend>
   <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
