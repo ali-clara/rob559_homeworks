@@ -28,6 +28,8 @@ setup(
             'speed_limiter = rob599_hw2.speed_limiter:main',
             'speed_checker = rob599_hw2.speed_checker:main',
             'braking_service_client = rob599_hw2.braking_service_client:main',
+            'nasa_action_server = rob599_hw2.nasa_action_server:main',
+            'nasa_action_client = rob599_hw2.nasa_action_client:main',
         ],
     },
 )

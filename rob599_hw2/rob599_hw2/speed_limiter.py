@@ -10,7 +10,6 @@ from geometry_msgs.msg import Twist
 from rob599_hw2_msgs.srv import ApplyBreaks
 
 import numpy as np
-from datetime import datetime
 
 class SpeedLimiter(Node):
     def __init__(self):
@@ -30,11 +29,12 @@ class SpeedLimiter(Node):
 
         # create a watchdog timer
         watchdog_period = self.get_parameter('watchdog_period').get_parameter_value().double_value
-        self.watchdog_timer = self.create_timer(watchdog_period, self.timer_callback)
+        self.watchdog_timer = self.create_timer(watchdog_period, self.watchdog_callback)
         self.watchdog_counter = 0
 
         # create a braking service
         self.create_service(ApplyBreaks, 'apply_breaks', self.service_callback)
+        self.braking_timer = self.create_timer(0.1, self.braking_callback)
         self.brakes = False
         
     def create_zero_twist(self) -> Twist:
@@ -49,6 +49,8 @@ class SpeedLimiter(Node):
         return msg
     
     def limit_twist(self, msg: Twist) -> Twist:
+        """Caps the value of a given Twist message between linear and angular
+            limits (node parameters linear_max and angular_max)"""
         linear_limit = self.get_parameter('linear_max').get_parameter_value().double_value
         rotation_limit = self.get_parameter('angular_max').get_parameter_value().double_value
 
@@ -63,7 +65,7 @@ class SpeedLimiter(Node):
 
         return msg
     
-    def timer_callback(self):
+    def watchdog_callback(self):
         """Callback function for the watchdog timer"""
         # check if watchdog is active
         with_watchdog = self.get_parameter('with_watchdog').get_parameter_value().bool_value
@@ -75,7 +77,7 @@ class SpeedLimiter(Node):
             # if we haven't recieved any messages, publish a zero-velocity twist
             if self.watchdog_counter == 0:
                 self.get_logger().info(f"Watchdog triggered: no messages recieved in {watchdog_period}s")
-                self.get_logger().info(f"timer period {self.watchdog_timer.timer_period_ns/1e9}")
+                self.get_logger().info(f"Watchdog currently checking every {self.watchdog_timer.timer_period_ns/1e9}s")
                 msg = self.create_zero_twist()
                 self.speed_pub.publish(msg)
 
@@ -98,10 +100,20 @@ class SpeedLimiter(Node):
         response.result = True
         return response
     
+    def braking_callback(self):
+        """Callback function for the braking timer. If the braking flag (controlled
+            by the braking service) is set to True, this publishes a zero Twist
+            message to the \speed_out topic at 10Hz"""
+        if self.brakes:
+            msg = self.create_zero_twist()
+            self.speed_pub.publish(msg)
+            self.get_logger().info(f"Speed_out sent {msg}")
+    
     def speed_callback(self, msg):
-        """Callback function for the speed_sub subscriber. Reads the Twist message,
-            caps each attribute at a value determined by the linear_ and angular_max
-            parameters, and republishes"""
+        """Callback function for the speed_sub subscriber. If the braking flag (controlled
+            by the braking service) is set to False, this caps each attribute at a value 
+            determined by the linear_ and angular_max parameters, and republishes the
+            message to the \speed_out topic"""
         
         # record that we've recieved a message
         self.watchdog_counter += 1
@@ -110,14 +122,10 @@ class SpeedLimiter(Node):
         # if the braking flag is set to false, trim the message according to the limit params
         if not self.brakes:
             msg = self.limit_twist(msg)
-
-        # otherwise (braking is True) set the message to zero
-        else:
-            msg = self.create_zero_twist()
+            # publish the message
+            self.speed_pub.publish(msg)
+            self.get_logger().info(f"Speed_out sent {msg}")
         
-        # publish the message
-        self.speed_pub.publish(msg)
-        self.get_logger().info(f"Speed_out sent {msg}")
 
 def main(args=None):
     # initialize rclpy
