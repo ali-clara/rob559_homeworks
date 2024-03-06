@@ -1,0 +1,5 @@
+# inputs
+string place_name
+---
+# outputs
+bool result
