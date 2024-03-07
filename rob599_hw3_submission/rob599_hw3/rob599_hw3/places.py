@@ -5,10 +5,12 @@
 
 # ROS imports
 import rclpy
-from rclpy.node import Node 
+from rclpy.node import Node
+from rclpy.action import ActionServer
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Vector3, Pose, PoseStamped
 from rob599_hw3_msgs.srv import MemorizePosition, ClearPositions, Save, Load
+import rospkg
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -17,6 +19,8 @@ import tf2_geometry_msgs
 
 # standard imports
 import numpy as np
+import yaml
+import os
 
 class Places(Node):
     def __init__(self):
@@ -79,10 +83,59 @@ class Places(Node):
             to a yaml file based on the given name"""
         filename = request.filename
 
+        # make sure filename is nonempty
+        if filename == "":
+            self.get_logger().info("Please enter nonempty filename")
+            response.result = False
+            return response
+
+        # make sure we save it as a yaml file
+        split_filename = filename.split('.')
+        if split_filename[-1] != "yaml":
+            self.get_logger().info("Invalid file type given. Saving as .yaml")
+            filename = filename+'.yaml'
+
+        # make sure we can actually read it if an exception gets thrown
+        try: 
+            with open (f"resource/{filename}", 'w') as yaml_file:
+                yaml.dump(self.positions_recorded, yaml_file, default_flow_style=False, sort_keys=False)
+        except:
+            self.get_logger().info("Failed to save yaml file. Are you running this from the local package directory?")
+            response.result = False
+            return response
+
+        response.result = True
+        return response
+
     def load_pos_callback(self, request, response):
-        """Callback for the load_positions service. Loads the yaml file."""
+        """Callback for the load_positions service. Loads the given yaml file."""
         filename = request.filename
-    
+
+        # make sure filename is nonempty
+        if filename == "":
+            self.get_logger().info("Please enter nonempty filename")
+            response.result = False
+            return response
+        
+        # make sure it's a yaml
+        split_filename = filename.split('.')
+        if split_filename[-1] != "yaml":
+            self.get_logger().info("Invalid file type given.")
+            response.result = False
+            return response
+        
+        try:
+            with open (f"resource/{filename}") as yaml_file:
+                self.positions_recorded = yaml.safe_load(yaml_file)
+                self.get_logger().info("Loaded yaml file of saved places")
+        except yaml.YAMLError as e:
+                print(f"Failed to load yaml file: {e}")
+                response.result = False
+                return response
+
+        response.result = True
+        return response
+
     def get_current_pose(self, frame_id):
         """Method that builds a stamped pose for the turtlebot base link origin
             and returns that pose in the given frame

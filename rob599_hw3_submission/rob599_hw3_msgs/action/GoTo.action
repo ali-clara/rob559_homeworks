@@ -1,0 +1,8 @@
+# goal
+string position_name
+---
+# result
+string outcome
+---
+# feedback
+int64 distance_to_goal
