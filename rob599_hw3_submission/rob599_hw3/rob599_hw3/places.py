@@ -7,7 +7,13 @@
 import rclpy
 from rclpy.node import Node 
 from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Vector3, Pose, PoseStamped
 from rob599_hw3_msgs.srv import MemorizePosition, ClearPositions
+
+from tf2_ros import TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+import tf2_geometry_msgs
 
 # standard imports
 import numpy as np
@@ -19,15 +25,80 @@ class Places(Node):
         self.get_logger().info("Started places node")
 
         # set up services
+        self.position_server = self.create_service(MemorizePosition, 'memorize_position', self.position_service_callback)
+        self.get_logger().info("Started memorize_position server")
+        self.clear_positions_server = self.create_service(ClearPositions, 'clear_positions', self.clear_positions_callback)
+        self.get_logger().info("Started clear_positions server")
 
+        # set up marker publisher
+        self.marker_pub = self.create_publisher(Marker, 'recorded_positions', 10)
+        self.markers_published = 0
+        self.positions_recorded = {}
 
+        # set up some tf stuff
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
-    def create_marker_msg(self, type:int, position, scale, frame='/map', color=[1.0,0.0,0.0,1.0], text=None) -> Marker:
+    def position_service_callback(self, request, response):
+        marker_name = request.place_name
+        try:
+            current_pose = self.get_current_pose("map")
+            self.get_logger().info(f"Got current pose in world frame: {current_pose}")
+
+            marker = self.create_marker_msg(marker_type=2, pose=current_pose)
+            marker_txt = self.create_marker_msg(marker_type=9, pose=current_pose, text=marker_name)
+            self.marker_pub.publish(marker)
+            self.marker_pub.publish(marker_txt)
+            self.positions_recorded.update({marker_name: current_pose})
+            response.result = True
+        except TransformException as e:
+            self.get_logger().info(f"Transform failed: {e}")
+            response.result = False
+
+        return response
+
+    def clear_positions_callback(self, request, response):
+        if request.clear:
+            self.get_logger().info("Clearning all markers")
+            self.remove_all_markers()
+
+        response.result = True
+        return response
+    
+    def get_current_pose(self, frame_id):
+        """Method that builds a stamped pose for the turtlebot base link origin
+            and returns that pose in the given frame
+            Args - frame_id (str): frame you want the turtlebot position in
+        """
+        # build a stamped pose and set the frame id
+        origin = PoseStamped()
+        origin.header.frame_id = 'base_link'
+
+        # set the position
+        origin.pose.position.x = 0.0
+        origin.pose.position.y = 0.0
+        origin.pose.position.z = 0.0
+        
+        origin.pose.orientation.x = 0.0
+        origin.pose.orientation.y = 0.0
+        origin.pose.orientation.z = 0.0
+        origin.pose.orientation.w = 1.0 # arbitrary orientation
+
+        # get the transform to the map frame. Raises an exception if it fails, which
+        # is dealt with in the try/except block in the callback
+        new_pose = self.tf_buffer.transform(origin, frame_id, rclpy.duration.Duration(seconds=1))
+
+        return new_pose.pose
+    
+    def remove_all_markers(self):
+        pass
+    
+    def create_marker_msg(self, marker_type:int, pose, frame='/map', scale=[0.1,0.1,0.1], color=[1.0,0.0,0.0,1.0], text=None) -> Marker:
         """Method to create a marker given input parameters"""
         marker = Marker()
 
         # set the appropriate marker fields
-        marker.type = type
+        marker.type = marker_type
         marker.header.frame_id = frame
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.id = self.markers_published
@@ -39,10 +110,7 @@ class Places(Node):
         marker.scale.y = scale[1]
         marker.scale.z = scale[2]
 
-        marker.pose.position.x = position[0]
-        marker.pose.position.y = position[1]
-        marker.pose.position.z = position[2]
-        marker.pose.orientation.w = 1.0
+        marker.pose = pose
 
         marker.color.r = color[0]
         marker.color.g = color[1]
