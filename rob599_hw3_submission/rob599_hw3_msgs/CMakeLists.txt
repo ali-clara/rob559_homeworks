@@ -15,6 +15,8 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ClearPositions.srv"
   "srv/MemorizePosition.srv"
+  "srv/Save.srv"
+  "srv/Load.srv"
   )
 # uncomment the following section in order to fill in
 # further dependencies manually.

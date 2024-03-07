@@ -8,7 +8,7 @@ import rclpy
 from rclpy.node import Node 
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Vector3, Pose, PoseStamped
-from rob599_hw3_msgs.srv import MemorizePosition, ClearPositions
+from rob599_hw3_msgs.srv import MemorizePosition, ClearPositions, Save, Load
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -26,12 +26,15 @@ class Places(Node):
 
         # set up services
         self.position_server = self.create_service(MemorizePosition, 'memorize_position', self.position_service_callback)
-        self.get_logger().info("Started memorize_position server")
+        self.get_logger().info("Started memorize_position service")
         self.clear_positions_server = self.create_service(ClearPositions, 'clear_positions', self.clear_positions_callback)
-        self.get_logger().info("Started clear_positions server")
+        self.get_logger().info("Started clear_positions service")
+        self.save_positions = self.create_service(Save, 'save', self.save_pos_callback)
+        self.get_logger().info("Started save service")
+        self.load_positions = self.create_service(Load, 'load', self.load_pos_callback)
 
         # set up marker publisher
-        self.marker_pub = self.create_publisher(Marker, 'recorded_positions', 10)
+        self.marker_pub = self.create_publisher(Marker, 'recorded_positions', 1)
         self.markers_published = 0
         self.positions_recorded = {}
 
@@ -40,6 +43,9 @@ class Places(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
     def position_service_callback(self, request, response):
+        """Callback function for the memorize_position service. Saves the current 
+            turtlebot location to a dictionary and drops a marker
+        """
         marker_name = request.place_name
         try:
             current_pose = self.get_current_pose("map")
@@ -58,12 +64,24 @@ class Places(Node):
         return response
 
     def clear_positions_callback(self, request, response):
+        """Callback function for the clear_positions service. Clears all markers
+            and the dictionary the positions were saved to"""
         if request.clear:
-            self.get_logger().info("Clearning all markers")
+            self.get_logger().info(f"Clearning all {self.markers_published} markers")
             self.remove_all_markers()
+            self.positions_recorded = {}
 
         response.result = True
         return response
+    
+    def save_pos_callback(self, request, response):
+        """Callback for the save_positions service. Saves the dictionary of saved places
+            to a yaml file based on the given name"""
+        filename = request.filename
+
+    def load_pos_callback(self, request, response):
+        """Callback for the load_positions service. Loads the yaml file."""
+        filename = request.filename
     
     def get_current_pose(self, frame_id):
         """Method that builds a stamped pose for the turtlebot base link origin
@@ -90,8 +108,14 @@ class Places(Node):
 
         return new_pose.pose
     
-    def remove_all_markers(self):
-        pass
+    def remove_all_markers(self, frame='/map'):
+        """Method to remove all markers from the given frame"""
+        for i in range(self.markers_published):
+            marker = Marker()
+            marker.id = i
+            marker.header.frame_id = frame
+            marker.action = Marker.DELETEALL
+            self.marker_pub.publish(marker)
     
     def create_marker_msg(self, marker_type:int, pose, frame='/map', scale=[0.1,0.1,0.1], color=[1.0,0.0,0.0,1.0], text=None) -> Marker:
         """Method to create a marker given input parameters"""
