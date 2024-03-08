@@ -7,20 +7,19 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
+
 from visualization_msgs.msg import Marker
-from geometry_msgs.msg import Vector3, Pose, PoseStamped
+from geometry_msgs.msg import PoseStamped
 from rob599_hw3_msgs.srv import MemorizePosition, ClearPositions, Save, Load
-import rospkg
+from rob599_hw3_msgs.action import GoTo
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-import tf2_geometry_msgs
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 
 # standard imports
-import numpy as np
 import yaml
-import os
 
 class Places(Node):
     def __init__(self):
@@ -36,15 +35,22 @@ class Places(Node):
         self.save_positions = self.create_service(Save, 'save', self.save_pos_callback)
         self.get_logger().info("Started save service")
         self.load_positions = self.create_service(Load, 'load', self.load_pos_callback)
+        self.get_logger().info("Started load service")
+
+        # set up actions
+        self.goto_action = ActionServer(self, GoTo, 'go_to', execute_callback=self.goto_callback)
+        self.get_logger().info("Started go_to action service")
 
         # set up marker publisher
         self.marker_pub = self.create_publisher(Marker, 'recorded_positions', 1)
+        self.get_logger().info("Started recorded_positions publisher")
         self.markers_published = 0
         self.positions_recorded = {}
 
         # set up some tf stuff
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.navigator = BasicNavigator()
 
     def position_service_callback(self, request, response):
         """Callback function for the memorize_position service. Saves the current 
@@ -135,6 +141,45 @@ class Places(Node):
 
         response.result = True
         return response
+    
+    def goto_callback(self, goal_handle):
+        """Callback for the go_to action client. Sends the robot to the goal recieved
+        from the action client
+        """
+        self.get_logger().info(f"Goal recieved: {goal_handle.request.position_name}")
+
+        # set up the feedback message
+        action_feedback_msg = GoTo.Feedback()
+
+        # start executing the goal
+        goal_pose = self.positions_recorded[goal_handle.request.position_name]
+        self.get_logger().info(f"Goal pose: {goal_pose}")
+        my_goal = PoseStamped()
+        my_goal.header.frame_id = 'map'
+        my_goal.header.stamp = self.navigator.get_clock().now().to_msg()
+        my_goal.pose = goal_pose
+        self.navigator.goToPose(my_goal)
+
+        # loop and publish feedback until we're done
+        while not self.navigator.isTaskComplete():
+            # retrieve feedback on how we're doing
+            feedback = self.navigator.getFeedback()
+            action_feedback_msg.distance_to_goal = float(feedback.distance_remaining)
+            goal_handle.publish_feedback(action_feedback_msg)
+
+        # set up the result message
+        result = GoTo.Result()
+        
+        # did we succeed? (doing this formatting for you Bill)
+        match self.navigator.getResult():
+            case TaskResult.SUCCEEDED:
+                result.outcome = "Goal Succeeded!"
+            case TaskResult.FAILED:
+                result.outcome = "Failed :("
+            case _:
+                result.outcome = "Goal has an invalid return status"
+
+        return result
 
     def get_current_pose(self, frame_id):
         """Method that builds a stamped pose for the turtlebot base link origin

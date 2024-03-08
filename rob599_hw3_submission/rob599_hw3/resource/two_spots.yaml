@@ -1,0 +1,87 @@
+start: !!python/object/new:geometry_msgs.msg._pose.Pose
+  state: !!python/tuple
+  - null
+  - _position: !!python/object/new:geometry_msgs.msg._point.Point
+      state: !!python/tuple
+      - null
+      - _x: !!python/object/apply:numpy.core.multiarray.scalar
+        - &id001 !!python/object/apply:numpy.dtype
+          args:
+          - f8
+          - false
+          - true
+          state: !!python/tuple
+          - 3
+          - <
+          - null
+          - null
+          - null
+          - -1
+          - -1
+          - 0
+        - !!binary |
+          pRFTVkKi+78=
+        _y: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          n/NPhY8f078=
+        _z: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          gR7deXx1hD8=
+    _orientation: !!python/object/new:geometry_msgs.msg._quaternion.Quaternion
+      state: !!python/tuple
+      - null
+      - _x: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          CRO2Qf3U5L4=
+        _y: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          AAAMJqVZxL4=
+        _z: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          sOWbSrN2VL8=
+        _w: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          cbg1Xf7/7z8=
+outside: !!python/object/new:geometry_msgs.msg._pose.Pose
+  state: !!python/tuple
+  - null
+  - _position: !!python/object/new:geometry_msgs.msg._point.Point
+      state: !!python/tuple
+      - null
+      - _x: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          dYREvdB0BsA=
+        _y: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          /0JwNk8o878=
+        _z: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          TGRz/geChD8=
+    _orientation: !!python/object/new:geometry_msgs.msg._quaternion.Quaternion
+      state: !!python/tuple
+      - null
+      - _x: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          F9P0FcMFJr8=
+        _y: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          ADADqkUvLz8=
+        _z: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          gyqxx4sy6b8=
+        _w: !!python/object/apply:numpy.core.multiarray.scalar
+        - *id001
+        - !!binary |
+          6enwQK+54z8=

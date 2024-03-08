@@ -17,6 +17,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/MemorizePosition.srv"
   "srv/Save.srv"
   "srv/Load.srv"
+  "action/GoTo.action"
   )
 # uncomment the following section in order to fill in
 # further dependencies manually.

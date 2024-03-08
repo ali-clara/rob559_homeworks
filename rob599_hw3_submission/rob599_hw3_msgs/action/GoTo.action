@@ -5,4 +5,4 @@ string position_name
 string outcome
 ---
 # feedback
-int64 distance_to_goal
+float64 distance_to_goal
